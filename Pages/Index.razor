@@ -1,7 +1,261 @@
 ﻿@page "/"
 
+@inject IHttpService HttpService
+
+@using ThreeDiamonds.Service
+@using Newtonsoft.Json
+@using Newtonsoft.Json.Linq
+@using System
+@using System.Globalization
+
 <PageTitle>Three Diamonds</PageTitle>
 
-<MudText Typo="Typo.h3" GutterBottom="true">Hello, world!</MudText>
-<MudText Class="mb-8">Welcome to your new app, powered by MudBlazor!</MudText>
-<MudAlert Severity="Severity.Normal">You can find documentation and examples on our website here: <MudLink Href="https://mudblazor.com" Typo="Typo.body2" Color="Color.Inherit"><b>www.mudblazor.com</b></MudLink></MudAlert>
+<div style="text-align: center;">
+    @if (currentPriceObject != null && currentBag != 0)
+    {
+        <MudGrid>
+            <MudItem xs="12">
+                <MudText Class="bitcoin">
+                   ₿ @(currentBag / Math.Pow(10, 8))
+                </MudText>
+            </MudItem>
+        </MudGrid>
+        <MudGrid>
+            <MudItem xs="12">
+                <MudText Class="gold">
+                    XAU @(
+                        Math.Round(
+                            ((currentBag / Math.Pow(10, 8)) * ConvertStringToDecimal(currentPriceObject["xau"]?.ToString())),
+                            2
+                        )
+                    )
+                </MudText>
+            </MudItem>
+        </MudGrid>
+        <MudDivider></MudDivider>
+        @foreach (var kvp in currencyToCountryCode)
+        {
+            @if (currentPriceObject[kvp.Key.ToLower()] != null)
+            {
+                <MudGrid>
+                    <MudItem xs="12">
+                        <MudText>@(
+                            ToCurrency(
+                                ((currentBag / Math.Pow(10, 8)) * ConvertStringToDecimal(currentPriceObject[kvp.Key.ToLower()]?.ToString())), kvp.Value
+                            )
+                        )
+                        </MudText>
+                    </MudItem>
+                </MudGrid>
+            }
+        }
+    }
+</div>
+
+<MudOverlay Visible="showLoadingOverlay" DarkBackground>
+    <MudProgressCircular Color="Color.Default" Indeterminate />
+</MudOverlay>
+
+@code {
+    private bool showLoadingOverlay { get; set; } = false;
+    private int currentBag { get; set; } = 0;
+    private JObject? currentPriceObject { get; set; } = null;
+    private Dictionary<string, string> currencyToCountryCode = new Dictionary<string, string>
+    {
+        { "CNY", "CN" }, // Chinese Yuan
+        { "USD", "US" }, // United States Dollar
+        { "EUR", "DE" }, // Euro (European Union)
+        { "JPY", "JP" }, // Japanese Yen
+        { "GBP", "GB" }, // British Pound Sterling
+        { "KRW", "KR" }, // South Korean Won
+        { "INR", "IN" }, // Indian Rupee
+        { "CAD", "CA" }, // Canadian Dollar
+        { "HKD", "HK" }, // Hong Kong Dollar
+        { "BRL", "BR" }, // Brazilian Real
+        { "AUD", "AU" }, // Australian Dollar
+        { "TWD", "TW" }, // New Taiwan Dollar
+        { "CHF", "CH" }, // Swiss Franc
+        { "RUB", "RU" }, // Russian Ruble
+        { "MXN", "MX" }, // Mexican Peso
+        { "SAR", "SA" }, // Saudi Riyal
+        { "AED", "AE" }, // United Arab Emirates Dirham
+        { "THB", "TH" }, // Thai Baht
+        { "SGD", "SG" }, // Singapore Dollar
+        { "PLN", "PL" }, // Polish Zloty
+        { "VND", "VN" }, // Vietnamese Dong
+        { "IDR", "ID" }, // Indonesian Rupiah
+        { "MYR", "MY" }, // Malaysian Ringgit
+        { "ILS", "IL" }, // Israeli New Shekel
+        { "TRY", "TR" }, // Turkish Lira
+        { "SEK", "SE" }, // Swedish Krona
+        { "CLP", "CL" }, // Chilean Peso
+        { "PHP", "PH" }, // Philippine Peso
+        { "CZK", "CZ" }, // Czech Koruna
+        { "NOK", "NO" }, // Norwegian Krone
+        { "ZAR", "ZA" }, // South African Rand
+        { "DKK", "DK" }, // Danish Krone
+        { "NZD", "NZ" }, // New Zealand Dollar
+        { "EGP", "EG" }, // Egyptian Pound
+        { "COP", "CO" }, // Colombian Peso
+        { "QAR", "QA" }, // Qatari Rial
+        { "MAD", "MA" }, // Moroccan Dirham
+        { "RON", "RO" }, // Romanian Leu
+        { "PKR", "PK" }, // Pakistani Rupee
+        { "IQD", "IQ" }, // Iraqi Dinar
+        { "KWD", "KW" }, // Kuwaiti Dinar
+        { "HUF", "HU" }, // Hungarian Forint
+        { "MOP", "MO" }, // Macanese Pataca
+        { "BGN", "BG" }, // Bulgarian Lev
+        { "ARS", "AR" }, // Argentine Peso
+        { "PEN", "PE" }, // Peruvian Nuevo Sol
+        { "KZT", "KZ" }, // Kazakhstani Tenge
+        { "UAH", "UA" }, // Ukrainian Hryvnia
+        { "LBP", "LB" }, // Lebanese Pound
+        { "OMR", "OM" }, // Omani Rial
+        { "JOD", "JO" }, // Jordanian Dinar
+        { "NGN", "NG" }, // Nigerian Naira
+        { "GTQ", "GT" }, // Guatemalan Quetzal
+        { "XOF", "CI" }, // West African CFA Franc (used by multiple countries)
+        { "DOP", "DO" }, // Dominican Peso
+        { "RSD", "RS" }, // Serbian Dinar
+        { "BHD", "BH" }, // Bahraini Dinar
+        { "KES", "KE" }, // Kenyan Shilling
+        { "LKR", "LK" }, // Sri Lankan Rupee
+        { "BOB", "BO" }, // Bolivian Boliviano
+        { "LYD", "LY" }, // Libyan Dinar
+        { "CRC", "CR" }, // Costa Rican Colón
+        { "AZN", "AZ" }, // Azerbaijani Manat
+        { "HNL", "HN" }, // Honduran Lempira
+        { "BYN", "BY" }, // Belarusian Ruble
+        { "ISK", "IS" }, // Icelandic Króna
+        { "MUR", "MU" }, // Mauritian Rupee
+        { "PYG", "PY" }, // Paraguayan Guarani
+        { "ALL", "AL" }, // Albanian Lek
+        { "AOA", "AO" }, // Angolan Kwanza
+        { "TZS", "TZ" }, // Tanzanian Shilling
+        { "GEL", "GE" }, // Georgian Lari
+        { "TTD", "TT" }, // Trinidad and Tobago Dollar
+        { "CDF", "CD" }, // Congolese Franc
+        { "UYU", "UY" }, // Uruguayan Peso
+        { "BND", "BN" }, // Brunei Dollar
+        { "MNT", "MN" }, // Mongolian Tugrik
+        { "MZN", "MZ" }, // Mozambican Metical
+        { "UGX", "UG" }, // Ugandan Shilling
+        { "BSD", "BS" }, // Bahamian Dollar
+        { "AMD", "AM" }, // Armenian Dram
+        { "MDL", "MD" }, // Moldovan Leu
+        { "LAK", "LA" }, // Laotian Kip
+        { "SDG", "SD" }, // Sudanese Pound
+        { "MKD", "MK" }, // Macedonian Denar
+        { "BWP", "BW" }, // Botswanan Pula
+        { "NAD", "NA" }, // Namibian Dollar
+        { "BAM", "BA" }, // Bosnia and Herzegovina Convertible Mark
+        { "JMD", "JM" }, // Jamaican Dollar
+        { "XPF", "PF" }, // CFP Franc
+        { "GNF", "GN" }, // Guinean Franc
+        { "NIO", "NI" }, // Nicaraguan Córdoba
+        { "KGS", "KG" }, // Kyrgystani Som
+        { "MGA", "MG" }, // Malagasy Ariary
+        { "MVR", "MV" }, // Maldivian Rufiyaa
+        { "RWF", "RW" }, // Rwandan Franc
+        { "GYD", "GY" }, // Guyanese Dollar
+        { "BTN", "BT" }, // Bhutanese Ngultrum
+        { "MWK", "MW" }, // Malawian Kwacha
+        { "CVE", "CV" }, // Cape Verdean Escudo
+        { "XAF", "CM" }, // Central African CFA Franc (used by multiple countries)
+        { "SCR", "SC" }, // Seychellois Rupee
+        { "BIF", "BI" }, // Burundian Franc
+        { "SZL", "SZ" }, // Swazi Lilangeni
+        { "LRD", "LR" }, // Liberian Dollar
+        { "GMD", "GM" }, // Gambian Dalasi
+        { "LSL", "LS" }, // Lesotho Loti
+        { "KMF", "KM" }, // Comorian Franc
+        { "BDT", "BD" }, // Bangladeshi Taka
+        { "TND", "TN" }, // Tunisian Dinar
+        { "ZMK", "ZM" }, // Zambian Kwacha (now ZMW after redenomination)
+        { "TJS", "TJ" }, // Tajikistani Somoni
+        { "SLL", "SL" }, // Sierra Leonean Leone
+        { "STD", "ST" }, // São Tomé and Príncipe Dobra (now STN after redenomination)
+        { "HRK", "HR" }, // Croatian Kuna
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        showLoadingOverlay = true;
+        await FetchBTCBag();
+        await FetchPrices();
+        showLoadingOverlay = false;
+    }
+
+    private async Task FetchPrices()
+    {
+        HttpResponseMessage response = await
+        HttpService.HttpGetResponseMessage<HttpResponseMessage>($"https://api.coingecko.com/api/v3/coins/bitcoin");
+        if (response.IsSuccessStatusCode)
+        {
+            string content = await response.Content.ReadAsStringAsync();
+            JObject? JObjectResponse = JObject.Parse(content);
+            if (JObjectResponse != null)
+            {
+                JToken? JTokenPrices = JObjectResponse["market_data"]?["current_price"];
+                if (JTokenPrices != null)
+                {
+                    currentPriceObject = (JObject)JTokenPrices;
+                }
+            }
+        }
+    }
+
+    private async Task FetchBTCBag()
+    {
+        HttpResponseMessage response = await
+        HttpService.HttpGetResponseMessage<HttpResponseMessage>($"https://blockchain.info/q/addressbalance/1AcdgXcRvxarE2HiNcRf5YPEu3k6C5PAT9");
+        if (response.IsSuccessStatusCode)
+        {
+            string content = await response.Content.ReadAsStringAsync();
+            int number;
+            bool success = int.TryParse(content, out number);
+
+            if (success)
+            {
+                currentBag = number;
+            }
+            else
+            {
+                currentBag = -1;
+            }
+        }
+    }
+
+    private string ToCurrency(double number, string currencyCode)
+    {
+        try
+        {
+            // Create a CultureInfo object for the specified currency code
+            var culture = new CultureInfo("en-US");
+            culture.NumberFormat.CurrencySymbol = new RegionInfo(currencyCode).CurrencySymbol;
+
+            // Format the number as currency
+            return number.ToString("C", culture);
+        }
+        catch (CultureNotFoundException)
+        {
+            // Handle invalid currency code
+            return "Invalid currency code";
+        }
+    }
+
+    private double ConvertStringToDecimal(string? numberString)
+    {
+        if (numberString == null) return -1;
+        double number;
+        bool success = double.TryParse(numberString, out number);
+
+        if (success)
+        {
+            return number;
+        }
+
+        return -1;
+    }
+}
