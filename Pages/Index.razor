@@ -1,7 +1,176 @@
 ﻿@page "/"
 
+@inject IHttpService HttpService
+@inject QRCodeService QRCodeService
+
+@using ThreeDiamonds.Service
+@using Newtonsoft.Json
+@using Newtonsoft.Json.Linq
+@using System
+@using System.Globalization
+
 <PageTitle>Three Diamonds</PageTitle>
 
-<MudText Typo="Typo.h3" GutterBottom="true">Hello, world!</MudText>
-<MudText Class="mb-8">Welcome to your new app, powered by MudBlazor!</MudText>
-<MudAlert Severity="Severity.Normal">You can find documentation and examples on our website here: <MudLink Href="https://mudblazor.com" Typo="Typo.body2" Color="Color.Inherit"><b>www.mudblazor.com</b></MudLink></MudAlert>
+<div style="text-align: center;">
+    @if (currentPriceObject != null)
+    {
+        <MudGrid>
+            <MudItem xs="12">
+                <MudText>
+                    Assets = @((legacy).ToString("N2")) USD = @(
+                        Math.Round(legacy / ConvertStringToDecimal(currentPriceObject["usd"]?.ToString()) * Math.Pow(10, 3), 5)
+                    ) mBTC
+                </MudText>
+            </MudItem>
+            <MudItem xs="12">
+                <MudText>
+                    Loan = @((legacy / 2).ToString("N2")) USD = @(
+                        Math.Round(legacy / 2 / ConvertStringToDecimal(currentPriceObject["usd"]?.ToString()) * Math.Pow(10, 3), 5)
+                    ) mBTC
+                </MudText>
+            </MudItem>
+            <MudItem xs="12">
+                <MudText>
+                    @((50.0/256.0 * ConvertStringToDecimal(currentPriceObject["usd"]?.ToString())).ToString("N2")) USD = 
+                    @(50.0/256.0 * Math.Pow(10,3)) mBTC
+                </MudText>
+            </MudItem>
+            <MudItem xs="12">
+                <MudText>
+                    Is Loan Greater than @(50.0/256.0 * Math.Pow(10,3)) mBTC?
+                </MudText>
+            </MudItem>
+            <MudItem xs="12">
+                <MudText>
+                    @(
+                        ((Math.Round(legacy / 2 / ConvertStringToDecimal(currentPriceObject["usd"]?.ToString()) * Math.Pow(10, 3), 5)) >
+                        (50.0/256.0 * Math.Pow(10,3))) ? "Yes" : "No"
+                    )
+                </MudText>
+            </MudItem>
+        </MudGrid>
+        @* <MudDivider></MudDivider>
+        <MudGrid>
+            <MudItem xs="12">
+                <div class="d-flex justify-center">
+                    <MudImage ObjectFit="@ObjectFit.ScaleDown" Height="200" Width="400" Src="@qrCodeImage" Alt="QR Code"  Elevation="25" Class="rounded-lg"/>
+                </div>
+            </MudItem>
+        </MudGrid>
+        <MudGrid>
+            <MudItem xs="12">
+                <MudText Class="bitcoin">
+                    @(currentBag / Math.Pow(10, 8) * Math.Pow(10, 3)) mBTC
+                </MudText>
+            </MudItem>
+        </MudGrid>
+        <MudGrid>
+            <MudItem xs="12">
+                <MudText Class="gold">
+                    XAU @(
+                        (((currentBag / Math.Pow(10, 8)) * ConvertStringToDecimal(currentPriceObject["xau"]?.ToString()))).ToString("N2")
+                    )
+                </MudText>
+            </MudItem>
+        </MudGrid>
+        <MudDivider></MudDivider>
+        @for (int i = 0; i <= 6; i+=1)
+        {
+            double btc = 0.05 / Math.Pow(2, i);
+            double mBTC = btc * Math.Pow(10, 3);
+            <MudGrid>
+                <MudItem xs="12">
+                    <MudText>
+                        @(mBTC) mBTC =
+                        @((btc * ConvertStringToDecimal(currentPriceObject["usd"]?.ToString())).ToString("N2")) USD
+                    </MudText>
+                </MudItem>
+            </MudGrid>
+        } *@
+    }
+</div>
+
+<MudOverlay Visible="showLoadingOverlay" DarkBackground>
+    <MudProgressCircular Color="Color.Default" Indeterminate />
+</MudOverlay>
+
+@code {
+    private bool showLoadingOverlay { get; set; } = false;
+    private string bitcoinAddress { get; set; } = "bc1pzgtvk6u3zghtl8y0a6kzynwukdvwgxkesamtx6ryr0les7gsj8asg5h8jy";
+    private long currentBag { get; set; } = 0;
+    private JObject? currentPriceObject { get; set; } = null;
+    private string? qrCodeImage { get; set;}
+    private double legacy { get; set; } = 66548.41;
+
+    protected override async Task OnInitializedAsync()
+    {
+        showLoadingOverlay = true;
+        @* await FetchBTCBag(); *@
+        await FetchPrices();
+        showLoadingOverlay = false;
+    }
+
+    private void GenerateQRCode()
+    {
+        qrCodeImage = $"data:image/png;base64,{QRCodeService.GenerateQRCodeAsBase64(bitcoinAddress)}";
+    }
+
+    protected override void OnParametersSet()
+    {
+        GenerateQRCode();
+    }
+
+    private async Task FetchPrices()
+    {
+        HttpResponseMessage response = await
+        HttpService.HttpGetResponseMessage<HttpResponseMessage>($"https://api.coingecko.com/api/v3/coins/bitcoin");
+        if (response.IsSuccessStatusCode)
+        {
+            string content = await response.Content.ReadAsStringAsync();
+            JObject? JObjectResponse = JObject.Parse(content);
+            if (JObjectResponse != null)
+            {
+                JToken? JTokenPrices = JObjectResponse["market_data"]?["current_price"];
+                if (JTokenPrices != null)
+                {
+                    currentPriceObject = (JObject)JTokenPrices;
+                }
+            }
+        }
+    }
+
+    private async Task FetchBTCBag()
+    {
+        HttpResponseMessage response = await
+        HttpService.HttpGetResponseMessage<HttpResponseMessage>($"https://blockchain.info/q/addressbalance/{bitcoinAddress}");
+        if (response.IsSuccessStatusCode)
+        {
+            string content = await response.Content.ReadAsStringAsync();
+            long number;
+            bool success = long.TryParse(content, out number);
+
+            if (success)
+            {
+                currentBag = number;
+            }
+            else
+            {
+                currentBag = -1;
+            }
+        }
+    }
+
+    private double ConvertStringToDecimal(string? numberString)
+    {
+        if (numberString == null) return -1;
+        double number;
+        bool success = double.TryParse(numberString, out number);
+
+        if (success)
+        {
+            return number;
+        }
+
+        return -1;
+    }
+}
