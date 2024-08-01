@@ -71,14 +71,14 @@
 
 @code {
     private bool showLoadingOverlay { get; set; } = false;
-    private int currentBag { get; set; } = 0;
+    private int currentBag { get; set; } = 8187867;
     private JObject? currentPriceObject { get; set; } = null;
     private Dictionary<string, CurrencyLocalization> currencyDictionary = CurrencyLocalizationProvider.GetDictionary();
 
     protected override async Task OnInitializedAsync()
     {
         showLoadingOverlay = true;
-        await FetchBTCBag();
+        @* await FetchBTCBag(); *@
         await FetchPrices();
         showLoadingOverlay = false;
     }
@@ -168,7 +168,7 @@
     {
         int statementsLeft = GetStatementsLeft();
         int gg = 100000;
-        double legacy = 66274.75;
+        double legacy = 67204.92;
         double liquid = currentBag / Math.Pow(10, 8) * ConvertStringToDecimal(currentPriceObject?["usd"]?.ToString());
         double interest = .07;
         double investmentAmount = (
