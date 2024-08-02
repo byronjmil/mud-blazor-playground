@@ -12,6 +12,29 @@
 <PageTitle>Three Diamonds</PageTitle>
 
 <div style="text-align: center;">
+    <MudGrid>
+        <MudItem xs="12">
+            <MudText>
+                Start Date: @(startDate.ToString("MMMM d, yyyy"))
+            </MudText>
+        </MudItem>
+        <MudItem xs="12">
+            <MudText>
+                Days Since: @(GetDaysSince())
+            </MudText>
+        </MudItem>
+        <MudItem xs="12">
+            <MudText>
+                196 Days From Start Date: @(GetDateFromNumberOfDays(196).ToString("MMMM d, yyyy"))
+            </MudText>
+        </MudItem>
+        <MudItem xs="12">
+            <MudText>
+                392 Days From Start Date: @(GetDateFromNumberOfDays(392).ToString("MMMM d, yyyy"))
+            </MudText>
+        </MudItem>
+    </MudGrid>
+    <MudDivider></MudDivider>
     @if (currentPriceObject != null && currentBag != 0)
     {
         <MudGrid>
@@ -62,6 +85,7 @@
     private int currentBag { get; set; } = 0;
     private JObject? currentPriceObject { get; set; } = null;
     private Dictionary<string, CurrencyLocalization> currencyDictionary = CurrencyLocalizationProvider.GetDictionary();
+    private DateTime startDate = new DateTime(2024, 7, 12);
 
     protected override async Task OnInitializedAsync()
     {
@@ -141,5 +165,19 @@
         }
 
         return -1;
+    }
+
+    private int GetDaysSince()
+    {
+        DateTime endDate = DateTime.Now;
+        TimeSpan difference = endDate - startDate;
+        int days = difference.Days;
+        return days;
+    }
+
+    private DateTime GetDateFromNumberOfDays(int days)
+    {
+        DateTime newDate = startDate.AddDays(days);
+        return newDate;
     }
 }
