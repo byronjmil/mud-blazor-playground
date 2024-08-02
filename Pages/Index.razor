@@ -16,18 +16,6 @@
     {
         <MudGrid>
             <MudItem xs="12">
-                <MudText Typo="Typo.h3" GutterBottom="true">June 28, 2025</MudText>
-            </MudItem>
-        </MudGrid>
-        <MudDivider></MudDivider>
-        <MudGrid>
-            <MudItem xs="12">
-                <MudText>Invest Amount: @(GetInvesmentAmount())</MudText>
-            </MudItem>
-        </MudGrid>
-        <MudDivider></MudDivider>
-        <MudGrid>
-            <MudItem xs="12">
                 <MudText Class="bitcoin">
                     ₿ @(currentBag / Math.Pow(10, 8))
                 </MudText>
@@ -71,14 +59,14 @@
 
 @code {
     private bool showLoadingOverlay { get; set; } = false;
-    private int currentBag { get; set; } = 8187867;
+    private int currentBag { get; set; } = 0;
     private JObject? currentPriceObject { get; set; } = null;
     private Dictionary<string, CurrencyLocalization> currencyDictionary = CurrencyLocalizationProvider.GetDictionary();
 
     protected override async Task OnInitializedAsync()
     {
         showLoadingOverlay = true;
-        @* await FetchBTCBag(); *@
+        await FetchBTCBag();
         await FetchPrices();
         showLoadingOverlay = false;
     }
@@ -105,7 +93,7 @@
     private async Task FetchBTCBag()
     {
         HttpResponseMessage response = await
-        HttpService.HttpGetResponseMessage<HttpResponseMessage>($"https://blockchain.info/q/addressbalance/1AcdgXcRvxarE2HiNcRf5YPEu3k6C5PAT9");
+        HttpService.HttpGetResponseMessage<HttpResponseMessage>($"https://blockchain.info/q/addressbalance/bc1p6r3atdw0qchgtav3p6tnyvqfse2av37rdtas59w9jqevscajwvmselp0vn");
         if (response.IsSuccessStatusCode)
         {
             string content = await response.Content.ReadAsStringAsync();
@@ -153,34 +141,5 @@
         }
 
         return -1;
-    }
-
-    private int GetStatementsLeft()
-    {
-        DateTime startDate = DateTime.Now;
-        DateTime endDate = new DateTime(2025, 6, 28);
-        TimeSpan difference = endDate - startDate;
-        int numberOfStatements = difference.Days / 14;
-        return numberOfStatements;
-    }
-
-    private string GetInvesmentAmount()
-    {
-        int statementsLeft = GetStatementsLeft();
-        int gg = 100000;
-        double legacy = 67204.92;
-        double liquid = currentBag / Math.Pow(10, 8) * ConvertStringToDecimal(currentPriceObject?["usd"]?.ToString());
-        double interest = .07;
-        double investmentAmount = (
-            (
-                (gg - ((legacy + liquid) * (1 + (interest * statementsLeft / 26)))) -
-                (613.69 * statementsLeft)
-            ) /
-            statementsLeft *
-            (
-                236.32 / 232.187
-            )
-        );
-        return ToCurrency(investmentAmount, "US");
     }
 }
