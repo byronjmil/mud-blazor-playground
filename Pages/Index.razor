@@ -20,17 +20,12 @@
         </MudItem>
         <MudItem xs="12">
             <MudText>
-                Days Since: @(GetDaysSince())
+                BiWeeks Since: @((double)GetDaysSince() / 14)
             </MudText>
         </MudItem>
         <MudItem xs="12">
             <MudText>
-                196 Days From Start Date: @(GetDateFromNumberOfDays(196).ToString("MMMM d, yyyy"))
-            </MudText>
-        </MudItem>
-        <MudItem xs="12">
-            <MudText>
-                364 Days From Start Date: @(GetDateFromNumberOfDays(364).ToString("MMMM d, yyyy"))
+                @(14*3) Days From Start Date: @(GetDateFromNumberOfDays(14*3).ToString("MMMM d, yyyy"))
             </MudText>
         </MudItem>
     </MudGrid>
