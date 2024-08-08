@@ -5,4 +5,5 @@ public class CurrencyLocalization
     public int Rank { get; set; }
     public string CurrencyCode { get; set; } = "";
     public string BankNoteName { get; set; } = "";
+    public string? Symbol { get; set;}
 }

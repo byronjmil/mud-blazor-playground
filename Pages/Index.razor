@@ -12,14 +12,6 @@
 <PageTitle>Three Diamonds</PageTitle>
 
 <div style="text-align: center;">
-    <MudGrid>
-        <MudItem xs="12">
-            <MudText>
-                $4 Daily = 404.84 / 9666.33 =  @(Math.Round(404.84 / 9666.33, 8))
-            </MudText>
-        </MudItem>
-    </MudGrid>
-    <MudDivider></MudDivider>
     @if (currentPriceObject != null && currentBag != 0)
     {
         <MudGrid>
@@ -48,12 +40,20 @@
             {
                 <MudGrid>
                     <MudItem xs="12">
-                        <MudText>@(kvp.Value.Rank) | @(
-                            ToCurrency(
-                                ((currentBag / Math.Pow(10, 8)) * ConvertStringToDecimal(currentPriceObject[kvp.Key.ToLower()]?.ToString())), kvp.Value.CurrencyCode
-                            )
-                            ) | @(kvp.Value.BankNoteName)
-                        </MudText>
+                        @if(kvp.Value.Symbol != null)
+                        {
+                            <MudText>@(kvp.Value.Rank) | @(kvp.Value.Symbol)@(((currentBag / Math.Pow(10, 8)) * ConvertStringToDecimal(currentPriceObject[kvp.Key.ToLower()]?.ToString())).ToString("N2")) | @(kvp.Value.BankNoteName)
+                            </MudText>
+                        }
+                        else
+                        {
+                            <MudText>@(kvp.Value.Rank) | @(
+                                ToCurrency(
+                                    ((currentBag / Math.Pow(10, 8)) * ConvertStringToDecimal(currentPriceObject[kvp.Key.ToLower()]?.ToString())), kvp.Value.CurrencyCode
+                                )
+                                ) | @(kvp.Value.BankNoteName)
+                            </MudText>
+                        }
                     </MudItem>
                 </MudGrid>
             }
