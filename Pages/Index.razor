@@ -49,6 +49,30 @@
                 </MudText>
             </MudItem>
         </MudGrid>
+        <MudDivider></MudDivider>
+        <MudGrid>
+            <MudItem xs="12">
+                <MudText>
+                    1 oz t = @(
+                        Math.Round((1 / ConvertStringToDecimal(currentPriceObject["xau"]?.ToString()) * Math.Pow(10, 3)), 5)
+                    ) mBTC
+                </MudText>
+            </MudItem>
+            <MudItem xs="12">
+                <MudText>
+                    1 lb t = @(
+                        Math.Round((12 / ConvertStringToDecimal(currentPriceObject["xau"]?.ToString()) * Math.Pow(10, 3)), 5)
+                    ) mBTC
+                </MudText>
+            </MudItem>
+            <MudItem xs="12">
+                <MudText>
+                    15 oz t = @(
+                        Math.Round((15 / ConvertStringToDecimal(currentPriceObject["xau"]?.ToString()) * Math.Pow(10, 3)), 5)
+                    ) mBTC
+                </MudText>
+            </MudItem>
+        </MudGrid>
         @* <MudDivider></MudDivider>
         <MudGrid>
             <MudItem xs="12">
